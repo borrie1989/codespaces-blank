@@ -219,7 +219,11 @@ async function startQrScanner() {
 
   try {
     qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
     });
     video.srcObject = qrStream;
     await video.play();
@@ -242,6 +246,40 @@ async function startQrScanner() {
     } catch (e) {
       // Non-fatal: some browsers/devices won't support these constraints
       console.debug('Autofocus constraints not applied', e);
+    }
+
+    // Add a tap-to-focus handler for devices/browsers that respond to a capture trigger
+    try {
+      const [videoTrack] = qrStream.getVideoTracks();
+      const videoClickHandler = async () => {
+        try {
+          if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
+            // Try a single-shot focus request
+            await videoTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] });
+          }
+        } catch (err) {
+          console.debug('applyConstraints focus attempt failed', err);
+        }
+
+        // Use ImageCapture.takePhoto() to trigger autofocus on some devices
+        try {
+          if (window.ImageCapture) {
+            const imageCapture = new ImageCapture(videoTrack);
+            // takePhoto may trigger autofocus; we ignore the resulting blob
+            await imageCapture.takePhoto();
+          }
+        } catch (err) {
+          console.debug('ImageCapture focus trigger failed', err);
+        }
+      };
+
+      video.addEventListener('click', videoClickHandler);
+      // Remove listener when scanner stops
+      const cleanupFocusListener = () => video.removeEventListener('click', videoClickHandler);
+      video.addEventListener('ended', cleanupFocusListener);
+      video.addEventListener('pause', cleanupFocusListener);
+    } catch (e) {
+      console.debug('Tap-to-focus setup failed', e);
     }
     qrScannerActive = true;
     status.textContent = 'Point the camera at a QR code to fill the form.';
