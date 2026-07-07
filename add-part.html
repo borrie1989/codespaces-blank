@@ -140,7 +140,7 @@
             type: 'in',
             quantity: item.quantity,
             itemName: item.name,
-            user: 'Current User',
+            user: typeof getCurrentUserName === 'function' ? getCurrentUserName() : 'Unknown User',
             note: item.shelfLocation || item.binNumber
               ? `Part created at ${item.shelfLocation || '—'} / ${item.binNumber || '—'}`
               : 'Part created',

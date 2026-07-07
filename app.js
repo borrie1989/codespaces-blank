@@ -23,6 +23,22 @@ function logout() {
   window.location.href = 'login.html';
 }
 
+function getCurrentUserName() {
+  try {
+    const auth = JSON.parse(localStorage.getItem('inventory-tracker-auth-v1') || '{}');
+    const email = String(auth.email || '').trim().toLowerCase();
+    if (!email) return 'Unknown User';
+
+    if (email.endsWith('@emrontech.co.za')) {
+      return email.replace('@emrontech.co.za', '') || 'Unknown User';
+    }
+
+    return email.split('@')[0] || 'Unknown User';
+  } catch {
+    return 'Unknown User';
+  }
+}
+
 function loadState() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -426,7 +442,7 @@ async function addItem(event) {
     type: 'in',
     quantity: item.quantity,
     itemName: item.name,
-    user: 'Current User',
+    user: getCurrentUserName(),
     note: item.manufacturer ? `Initial stock from ${item.manufacturer}` : 'Initial stock added',
     timestamp: new Date().toLocaleString('en-GB', { hour12: false })
   });
@@ -461,7 +477,7 @@ function handleMovement(event) {
     type,
     quantity,
     itemName: item.name,
-    user: 'Current User',
+    user: getCurrentUserName(),
     note: note || (type === 'in' ? 'Stock added' : 'Stock removed'),
     timestamp: new Date().toLocaleString('en-GB', { hour12: false })
   });

@@ -113,7 +113,7 @@
             type: 'in',
             quantity,
             itemName: item.name,
-            user: 'Current User',
+            user: typeof getCurrentUserName === 'function' ? getCurrentUserName() : 'Unknown User',
             note: note || (item.shelfLocation || item.binNumber
               ? `Stock added to ${item.shelfLocation || '—'} / ${item.binNumber || '—'}`
               : 'Stock added'),

@@ -93,7 +93,7 @@
             quantity,
             itemName: item.name,
             project: project || 'Unassigned',
-            user: 'Current User',
+            user: typeof getCurrentUserName === 'function' ? getCurrentUserName() : 'Unknown User',
             note: note || 'Stock removed',
             timestamp: new Date().toLocaleString('en-GB', { hour12: false })
           });
