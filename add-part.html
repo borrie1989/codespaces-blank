@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Part</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button" href="index.html">Dashboard</a>
+          <a class="tree-button" href="inventory.html">Inventory List</a>
+          <a class="tree-button active" href="add-part.html">Add Part</a>
+          <a class="tree-button" href="stock-in.html">Book In</a>
+          <a class="tree-button" href="stock-out.html">Book Out</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Warehouse Ops</p>
+            <h1>Add Part</h1>
+            <p class="muted">Create a new part entry with all its details before any stock movement.</p>
+          </div>
+        </header>
+
+        <section class="panel wide-panel">
+          <h2>New part details</h2>
+          <form id="add-part-form" class="stack">
+            <label>
+              Part name
+              <input id="item-name" name="itemName" placeholder="e.g. Motor Driver" required />
+            </label>
+            <label>
+              SKU
+              <input id="item-sku" name="sku" placeholder="e.g. MD-1001" required />
+            </label>
+            <label>
+              Manufacturer
+              <input id="item-manufacturer" name="manufacturer" placeholder="e.g. ACME Corp" />
+            </label>
+            <label>
+              Initial quantity
+              <input id="item-quantity" name="quantity" type="number" min="0" value="0" />
+            </label>
+            <label>
+              Minimum quantity
+              <input id="item-min-quantity" name="minQuantity" type="number" min="0" value="5" />
+            </label>
+            <label>
+              Shelf location
+              <input id="item-shelf-location" name="shelfLocation" placeholder="A-01-03" />
+            </label>
+            <div class="scanner-controls">
+              <button type="button" id="scan-qr-button">Scan QR code</button>
+              <button type="button" id="cancel-qr-button" class="secondary-button hidden">Stop camera</button>
+            </div>
+            <div id="qr-scanner-panel" class="qr-scanner-panel hidden">
+              <video id="qr-video" autoplay playsinline muted></video>
+              <p id="qr-status">Point the camera at a QR code to fill the part details.</p>
+            </div>
+            <label>
+              Photo (optional)
+              <input id="item-photo" name="photo" type="file" accept="image/*" />
+            </label>
+            <div id="photo-preview" class="photo-preview">No photo selected</div>
+            <button type="submit">Add part</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('add-part-form');
+        const photoInput = document.getElementById('item-photo');
+
+        if (photoInput) {
+          photoInput.addEventListener('change', (event) => {
+            const preview = document.getElementById('photo-preview');
+            const file = event.target.files[0];
+            if (!file || !preview) return;
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+              preview.innerHTML = `<img src="${loadEvent.target.result}" alt="Selected preview" />`;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const data = new FormData(form);
+          const photoFile = data.get('photo');
+          const minimumQuantity = Number(data.get('minQuantity')) || 0;
+          const photo = photoFile && photoFile.name ? await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Unable to read image'));
+            reader.readAsDataURL(photoFile);
+          }) : '';
+          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+          const sku = data.get('sku').toString().trim().toUpperCase();
+          const duplicateSku = (state.items || []).some((entry) => entry.sku === sku);
+
+          if (duplicateSku) {
+            alert('A part with this SKU already exists. Please use a unique SKU.');
+            return;
+          }
+
+          const item = {
+            id: crypto.randomUUID(),
+            name: data.get('itemName').toString().trim(),
+            sku,
+            manufacturer: data.get('manufacturer').toString().trim(),
+            quantity: Number(data.get('quantity')) || 0,
+            minQuantity: minimumQuantity,
+            shelfLocation: data.get('shelfLocation').toString().trim(),
+            photo
+          };
+
+          if (!item.name || !item.sku) return;
+
+          state.items.push(item);
+          state.activities.unshift({
+            id: crypto.randomUUID(),
+            type: 'in',
+            quantity: item.quantity,
+            itemName: item.name,
+            user: 'Current User',
+            note: item.shelfLocation ? `Part created at ${item.shelfLocation}` : 'Part created',
+            timestamp: new Date().toLocaleString('en-GB', { hour12: false })
+          });
+          localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));
+          form.reset();
+          document.getElementById('photo-preview').innerHTML = '<span>No photo selected</span>';
+          window.location.href = 'inventory.html';
+        });
+      });
+    </script>
+  </body>
+</html>

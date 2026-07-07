@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book Stock In</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button" href="index.html">Dashboard</a>
+          <a class="tree-button" href="inventory.html">Inventory List</a>
+          <a class="tree-button" href="add-part.html">Add Part</a>
+          <a class="tree-button active" href="stock-in.html">Book In</a>
+          <a class="tree-button" href="stock-out.html">Book Out</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Warehouse Ops</p>
+            <h1>Book Stock In</h1>
+            <p class="muted">Add stock to an existing part.</p>
+          </div>
+        </header>
+
+        <section class="panel wide-panel">
+          <h2>Stock in form</h2>
+          <form id="stock-in-form" class="stack">
+            <label>
+              Item
+              <select id="stock-in-item" name="itemId" required></select>
+            </label>
+            <p class="muted">Choose an item that already exists in inventory. New parts should be added from the Add Part page first.</p>
+            <label>
+              Quantity
+              <input id="stock-in-quantity" name="quantity" type="number" min="1" required value="1" />
+            </label>
+            <label>
+              Note
+              <input id="stock-in-note" name="note" placeholder="Supplier delivery" />
+            </label>
+            <label>
+              Shelf location (set once)
+              <input id="stock-in-shelf-location" name="shelfLocation" placeholder="A-01-03" />
+            </label>
+            <div class="scanner-controls">
+              <button type="button" id="scan-qr-button">Scan QR code</button>
+              <button type="button" id="cancel-qr-button" class="secondary-button hidden">Stop camera</button>
+            </div>
+            <div id="qr-scanner-panel" class="qr-scanner-panel hidden">
+              <video id="qr-video" autoplay playsinline muted></video>
+              <p id="qr-status">Point the camera at a QR code to fill the form.</p>
+            </div>
+            <button type="submit">Book stock in</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('stock-in-form');
+        const select = document.getElementById('stock-in-item');
+        const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+
+        select.innerHTML = '';
+        if (!state.items || state.items.length === 0) {
+          const emptyOption = document.createElement('option');
+          emptyOption.value = '';
+          emptyOption.textContent = 'No inventory items yet';
+          select.appendChild(emptyOption);
+        } else {
+          (state.items || []).forEach((item) => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = `${item.name} (${item.sku})`;
+            select.appendChild(option);
+          });
+        }
+
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const data = new FormData(form);
+          const itemId = data.get('itemId').toString();
+          const quantity = Number(data.get('quantity')) || 0;
+          const note = data.get('note').toString().trim();
+          const shelfLocation = data.get('shelfLocation').toString().trim();
+          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+          const item = (state.items || []).find((entry) => entry.id === itemId);
+
+          if (!item || quantity <= 0) {
+            alert('Please choose an existing inventory item before booking stock in.');
+            return;
+          }
+
+          if (!item.shelfLocation) {
+            if (!shelfLocation) {
+              alert('Please add a shelf location the first time this part is booked in.');
+              return;
+            }
+            item.shelfLocation = shelfLocation;
+          }
+
+          item.quantity += quantity;
+          state.activities.unshift({
+            id: crypto.randomUUID(),
+            type: 'in',
+            quantity,
+            itemName: item.name,
+            user: 'Current User',
+            note: note || (item.shelfLocation ? `Stock added to ${item.shelfLocation}` : 'Stock added'),
+            timestamp: new Date().toLocaleString('en-GB', { hour12: false })
+          });
+          localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));
+          form.reset();
+          document.getElementById('stock-in-quantity').value = 1;
+          window.location.reload();
+        });
+      });
+    </script>
+  </body>
+</html>

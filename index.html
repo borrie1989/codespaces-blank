@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button active" href="index.html">Dashboard</a>
+          <a class="tree-button" href="inventory.html">Inventory List</a>
+          <a class="tree-button" href="add-part.html">Add Part</a>
+          <a class="tree-button" href="stock-in.html">Book In</a>
+          <a class="tree-button" href="stock-out.html">Book Out</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+        <div>
+          <p class="eyebrow">Warehouse Ops</p>
+          <h1>Stock Inventory Tracker</h1>
+          <p class="muted">Book stock in and out with a simple, reliable control panel.</p>
+        </div>
+        <div class="summary-card">
+          <a class="nav-link" href="inventory.html">View inventory list</a>
+          <h2 id="summary-count">0</h2>
+          <p>Total stock items</p>
+        </div>
+      </header>
+
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Low stock items</h2>
+          <span class="pill">Needs attention</span>
+        </div>
+        <ul id="low-stock-list" class="activity-list"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Audit trail</h2>
+          <span class="pill">Latest 10</span>
+        </div>
+        <ul id="activity-list" class="activity-list"></ul>
+      </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

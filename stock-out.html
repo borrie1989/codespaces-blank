@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book Stock Out</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button" href="index.html">Dashboard</a>
+          <a class="tree-button" href="inventory.html">Inventory List</a>
+          <a class="tree-button" href="add-part.html">Add Part</a>
+          <a class="tree-button" href="stock-in.html">Book In</a>
+          <a class="tree-button active" href="stock-out.html">Book Out</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Warehouse Ops</p>
+            <h1>Book Stock Out</h1>
+            <p class="muted">Remove stock from an existing part.</p>
+          </div>
+        </header>
+
+        <section class="panel wide-panel">
+          <h2>Stock out form</h2>
+          <form id="stock-out-form" class="stack">
+            <label>
+              Item
+              <select id="stock-out-item" name="itemId" required></select>
+            </label>
+            <label>
+              Quantity
+              <input id="stock-out-quantity" name="quantity" type="number" min="1" required value="1" />
+            </label>
+            <label>
+              Project
+              <input id="stock-out-project" name="project" placeholder="e.g. Project Alpha" />
+            </label>
+            <label>
+              Note
+              <input id="stock-out-note" name="note" placeholder="Dispatch or usage" />
+            </label>
+            <button type="submit">Book stock out</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('stock-out-form');
+        const select = document.getElementById('stock-out-item');
+        const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+
+        select.innerHTML = '';
+        (state.items || []).forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = `${item.name} (${item.sku})`;
+          select.appendChild(option);
+        });
+
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const data = new FormData(form);
+          const itemId = data.get('itemId').toString();
+          const quantity = Number(data.get('quantity')) || 0;
+          const project = data.get('project').toString().trim();
+          const note = data.get('note').toString().trim();
+          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+          const item = (state.items || []).find((entry) => entry.id === itemId);
+
+          if (!item || quantity <= 0) return;
+          if (item.quantity < quantity) {
+            alert('Not enough stock to book out.');
+            return;
+          }
+
+          item.quantity -= quantity;
+          state.activities.unshift({
+            id: crypto.randomUUID(),
+            type: 'out',
+            quantity,
+            itemName: item.name,
+            project: project || 'Unassigned',
+            user: 'Current User',
+            note: note || 'Stock removed',
+            timestamp: new Date().toLocaleString('en-GB', { hour12: false })
+          });
+          localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));
+          form.reset();
+          document.getElementById('stock-out-quantity').value = 1;
+          window.location.reload();
+        });
+      });
+    </script>
+  </body>
+</html>

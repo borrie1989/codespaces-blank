@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory List</title>
+    <link rel="stylesheet" href="styles.css?v=2" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button" href="index.html">Dashboard</a>
+          <a class="tree-button active" href="inventory.html">Inventory List</a>
+          <a class="tree-button" href="add-part.html">Add Part</a>
+          <a class="tree-button" href="stock-in.html">Book In</a>
+          <a class="tree-button" href="stock-out.html">Book Out</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+        <div>
+          <p class="eyebrow">Warehouse Ops</p>
+          <h1>Inventory List</h1>
+          <p class="muted">Browse all tracked parts, manufacturers, and photo references.</p>
+        </div>
+        <a class="nav-link" href="index.html">Back to dashboard</a>
+      </header>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Current inventory</h2>
+          <span id="inventory-total" class="pill">0 units</span>
+        </div>
+        <div class="section-head compact">
+          <input id="inventory-search" class="search-input" type="search" placeholder="Search by item, SKU, or manufacturer" />
+          <button id="admin-toggle" class="secondary-button" type="button">Enable admin edit</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>SKU</th>
+                <th>Manufacturer</th>
+                <th>Shelf</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Photo</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const inventoryTableBody = document.getElementById('inventory-table-body');
+        const inventoryTotal = document.getElementById('inventory-total');
+        const searchInput = document.getElementById('inventory-search');
+        const adminToggle = document.getElementById('admin-toggle');
+        let adminMode = false;
+
+        function renderInventory() {
+          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+          const searchTerm = (searchInput?.value || '').toLowerCase();
+          const items = (state.items || []).filter((item) => {
+            const haystack = `${item.name} ${item.sku} ${item.manufacturer || ''}`.toLowerCase();
+            return haystack.includes(searchTerm);
+          });
+
+          const totalStock = items.reduce((sum, item) => sum + item.quantity, 0);
+          inventoryTotal.textContent = `${totalStock} units`;
+
+          inventoryTableBody.innerHTML = '';
+          items.forEach((item) => {
+            const row = document.createElement('tr');
+            const minimumQuantity = Number(item.minQuantity ?? 5);
+            const status = item.quantity <= 0 ? 'Out of stock' : item.quantity <= minimumQuantity ? 'Low stock' : 'In stock';
+            const statusClass = item.quantity <= 0 ? 'out-of-stock' : item.quantity <= minimumQuantity ? 'low-stock' : 'in-stock';
+            const photoCell = item.photo
+              ? `<img class="item-thumbnail" src="${item.photo}" alt="${item.name}" />`
+              : '<span class="muted">No image</span>';
+
+            row.innerHTML = `
+              <td>${item.name}</td>
+              <td>${item.sku}</td>
+              <td>${item.manufacturer || '—'}</td>
+              <td>${item.shelfLocation || '—'}</td>
+              <td>${item.quantity}</td>
+              <td><span class="status-pill ${statusClass}">${status}</span></td>
+              <td>${photoCell}</td>
+              <td>${adminMode ? `<button class="secondary-button" type="button" data-edit="${item.id}">Edit</button>` : '<span class="muted">Admin only</span>'}</td>
+            `;
+            inventoryTableBody.appendChild(row);
+          });
+        }
+
+        function promptAdminPassword() {
+          const password = window.prompt('Enter admin password');
+          return password === 'admin123';
+        }
+
+        adminToggle?.addEventListener('click', () => {
+          if (!promptAdminPassword()) {
+            alert('Access denied.');
+            return;
+          }
+          adminMode = true;
+          adminToggle.textContent = 'Admin enabled';
+          renderInventory();
+        });
+
+        searchInput?.addEventListener('input', renderInventory);
+
+        inventoryTableBody.addEventListener('click', (event) => {
+          const editButton = event.target.closest('button[data-edit]');
+          if (!editButton || !adminMode) return;
+
+          const itemId = editButton.getAttribute('data-edit');
+          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
+          const item = (state.items || []).find((entry) => entry.id === itemId);
+          if (!item) return;
+
+          const newName = window.prompt('Edit item name', item.name);
+          if (newName === null) return;
+          const newSku = window.prompt('Edit SKU', item.sku);
+          if (newSku === null) return;
+          const newManufacturer = window.prompt('Edit manufacturer', item.manufacturer || '');
+          if (newManufacturer === null) return;
+          const newQuantity = window.prompt('Edit quantity', String(item.quantity));
+          if (newQuantity === null) return;
+
+          item.name = newName.trim() || item.name;
+          item.sku = newSku.trim().toUpperCase() || item.sku;
+          item.manufacturer = newManufacturer.trim();
+          item.quantity = Number(newQuantity) || item.quantity;
+
+          localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));
+          renderInventory();
+        });
+
+        renderInventory();
+      });
+    </script>
+  </body>
+</html>
