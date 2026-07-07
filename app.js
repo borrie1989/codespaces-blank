@@ -60,7 +60,11 @@ let qrDetector = null;
 function stopQrScanner() {
   qrScannerActive = false;
   if (qrScanTimer) {
-    window.clearTimeout(qrScanTimer);
+    try {
+      window.cancelAnimationFrame(qrScanTimer);
+    } catch (e) {
+      window.clearTimeout(qrScanTimer);
+    }
     qrScanTimer = null;
   }
   if (qrStream) {
@@ -187,7 +191,8 @@ async function scanQrFrame() {
     return;
   }
 
-  qrScanTimer = window.setTimeout(scanQrFrame, 250);
+  // Use requestAnimationFrame for a smoother scanning loop when possible
+  qrScanTimer = window.requestAnimationFrame(scanQrFrame);
 }
 
 async function startQrScanner() {
@@ -218,6 +223,26 @@ async function startQrScanner() {
     });
     video.srcObject = qrStream;
     await video.play();
+    // Try to enable continuous autofocus if supported by the device
+    try {
+      const [track] = qrStream.getVideoTracks();
+      if (track && typeof track.getCapabilities === 'function' && typeof track.applyConstraints === 'function') {
+        const caps = track.getCapabilities();
+        const advanced = [];
+        if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+          advanced.push({ focusMode: 'continuous' });
+        } else if (caps.focusDistance && typeof caps.focusDistance.max === 'number') {
+          const ideal = (caps.focusDistance.min || 0) + ((caps.focusDistance.max - (caps.focusDistance.min || 0)) / 2);
+          advanced.push({ focusDistance: ideal });
+        }
+        if (advanced.length) {
+          await track.applyConstraints({ advanced });
+        }
+      }
+    } catch (e) {
+      // Non-fatal: some browsers/devices won't support these constraints
+      console.debug('Autofocus constraints not applied', e);
+    }
     qrScannerActive = true;
     status.textContent = 'Point the camera at a QR code to fill the form.';
     scanQrFrame();
@@ -410,6 +435,21 @@ if (scanQrButton) {
 
 if (cancelQrButton) {
   cancelQrButton.addEventListener('click', stopQrScanner);
+
+  // Wire up QR scanner controls
+  if (scanQrButton) {
+    scanQrButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      startQrScanner();
+    });
+  }
+
+  if (cancelQrButton) {
+    cancelQrButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      stopQrScanner();
+    });
+  }
 }
 
 render();
