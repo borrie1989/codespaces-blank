@@ -16,6 +16,8 @@
           <a class="tree-button" href="add-part.html">Add Part</a>
           <a class="tree-button" href="stock-in.html">Book In</a>
           <a class="tree-button" href="stock-out.html">Book Out</a>
+          <a class="tree-button" href="users.html">User Management</a>
+          <a class="tree-button" href="#" onclick="logout(); return false;">Logout</a>
         </nav>
       </aside>
 
@@ -36,7 +38,6 @@
         </div>
         <div class="section-head compact">
           <input id="inventory-search" class="search-input" type="search" placeholder="Search by item, SKU, or manufacturer" />
-          <button id="admin-toggle" class="secondary-button" type="button">Enable admin edit</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -49,7 +50,6 @@
                 <th>Quantity</th>
                 <th>Status</th>
                 <th>Photo</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="inventory-table-body"></tbody>
@@ -65,8 +65,6 @@
         const inventoryTableBody = document.getElementById('inventory-table-body');
         const inventoryTotal = document.getElementById('inventory-total');
         const searchInput = document.getElementById('inventory-search');
-        const adminToggle = document.getElementById('admin-toggle');
-        let adminMode = false;
 
         function renderInventory() {
           const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
@@ -97,55 +95,12 @@
               <td>${item.quantity}</td>
               <td><span class="status-pill ${statusClass}">${status}</span></td>
               <td>${photoCell}</td>
-              <td>${adminMode ? `<button class="secondary-button" type="button" data-edit="${item.id}">Edit</button>` : '<span class="muted">Admin only</span>'}</td>
             `;
             inventoryTableBody.appendChild(row);
           });
         }
 
-        function promptAdminPassword() {
-          const password = window.prompt('Enter admin password');
-          return password === 'admin123';
-        }
-
-        adminToggle?.addEventListener('click', () => {
-          if (!promptAdminPassword()) {
-            alert('Access denied.');
-            return;
-          }
-          adminMode = true;
-          adminToggle.textContent = 'Admin enabled';
-          renderInventory();
-        });
-
         searchInput?.addEventListener('input', renderInventory);
-
-        inventoryTableBody.addEventListener('click', (event) => {
-          const editButton = event.target.closest('button[data-edit]');
-          if (!editButton || !adminMode) return;
-
-          const itemId = editButton.getAttribute('data-edit');
-          const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
-          const item = (state.items || []).find((entry) => entry.id === itemId);
-          if (!item) return;
-
-          const newName = window.prompt('Edit item name', item.name);
-          if (newName === null) return;
-          const newSku = window.prompt('Edit SKU', item.sku);
-          if (newSku === null) return;
-          const newManufacturer = window.prompt('Edit manufacturer', item.manufacturer || '');
-          if (newManufacturer === null) return;
-          const newQuantity = window.prompt('Edit quantity', String(item.quantity));
-          if (newQuantity === null) return;
-
-          item.name = newName.trim() || item.name;
-          item.sku = newSku.trim().toUpperCase() || item.sku;
-          item.manufacturer = newManufacturer.trim();
-          item.quantity = Number(newQuantity) || item.quantity;
-
-          localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));
-          renderInventory();
-        });
 
         renderInventory();
       });
