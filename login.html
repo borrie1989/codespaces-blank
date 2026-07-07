@@ -110,10 +110,23 @@
       const AUTH_KEY = 'inventory-tracker-auth-v1';
       const USERS_KEY = 'inventory-tracker-users-v1';
 
+      function normalizeEmail(email) {
+        return email.trim().toLowerCase();
+      }
+
+      function loadUsers() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
       // Initialize default admin user on first load
       function initializeDefaultUsers() {
-        const stored = localStorage.getItem(USERS_KEY);
-        if (!stored) {
+        const users = loadUsers();
+        if (users.length === 0) {
           const defaultUsers = [
             {
               id: crypto.randomUUID(),
@@ -129,13 +142,13 @@
 
       function handleLogin(event) {
         event.preventDefault();
-        const email = document.getElementById('email').value.trim();
+        const email = normalizeEmail(document.getElementById('email').value);
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('error-message');
 
         initializeDefaultUsers();
-        const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-        const user = users.find((u) => u.email === email && u.password === password);
+        const users = loadUsers();
+        const user = users.find((u) => normalizeEmail(u.email || '') === email && u.password === password);
 
         if (!user) {
           errorDiv.textContent = 'Invalid email or password.';
