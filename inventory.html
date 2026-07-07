@@ -47,6 +47,7 @@
                 <th>SKU</th>
                 <th>Manufacturer</th>
                 <th>Shelf</th>
+                <th>Bin</th>
                 <th>Quantity</th>
                 <th>Status</th>
                 <th>Photo</th>
@@ -92,6 +93,7 @@
               <td>${item.sku}</td>
               <td>${item.manufacturer || '—'}</td>
               <td>${item.shelfLocation || '—'}</td>
+              <td>${item.binNumber || '—'}</td>
               <td>${item.quantity}</td>
               <td><span class="status-pill ${statusClass}">${status}</span></td>
               <td>${photoCell}</td>

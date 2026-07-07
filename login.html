@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Inventory Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .login-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .login-panel {
+        background: white;
+        padding: 3rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 400px;
+      }
+      .login-panel h1 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+        font-size: 1.8rem;
+      }
+      .login-panel .subtitle {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+      }
+      .login-panel label {
+        display: block;
+        margin: 1rem 0 0.5rem 0;
+        color: #333;
+        font-weight: 500;
+      }
+      .login-panel input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      .login-panel input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      .login-panel button {
+        width: 100%;
+        padding: 0.75rem;
+        margin-top: 1.5rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .login-panel button:hover {
+        background: #5568d3;
+      }
+      .login-panel button:active {
+        background: #4656b8;
+      }
+      .error-message {
+        color: #d32f2f;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-panel">
+        <h1>Inventory Tracker</h1>
+        <p class="subtitle">Warehouse Operations Control Panel</p>
+        <form id="login-form">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="user@emrontech.co.za"
+            required
+            autofocus
+          />
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            required
+          />
+          <button type="submit">Sign In</button>
+          <div id="error-message" class="error-message"></div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const AUTH_KEY = 'inventory-tracker-auth-v1';
+      const USERS_KEY = 'inventory-tracker-users-v1';
+
+      // Initialize default admin user on first load
+      function initializeDefaultUsers() {
+        const stored = localStorage.getItem(USERS_KEY);
+        if (!stored) {
+          const defaultUsers = [
+            {
+              id: crypto.randomUUID(),
+              email: 'morne@emrontech.co.za',
+              password: 'Emron@2023',
+              isAdmin: true,
+              createdAt: new Date().toLocaleString('en-GB', { hour12: false })
+            }
+          ];
+          localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
+        }
+      }
+
+      function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('error-message');
+
+        initializeDefaultUsers();
+        const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+        const user = users.find((u) => u.email === email && u.password === password);
+
+        if (!user) {
+          errorDiv.textContent = 'Invalid email or password.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        // Store auth session
+        localStorage.setItem(
+          AUTH_KEY,
+          JSON.stringify({
+            userId: user.id,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            loginTime: new Date().toISOString()
+          })
+        );
+
+        // Redirect to dashboard
+        window.location.href = 'index.html';
+      }
+
+      document.getElementById('login-form').addEventListener('submit', handleLogin);
+      initializeDefaultUsers();
+    </script>
+  </body>
+</html>

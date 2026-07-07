@@ -16,6 +16,8 @@
           <a class="tree-button active" href="add-part.html">Add Part</a>
           <a class="tree-button" href="stock-in.html">Book In</a>
           <a class="tree-button" href="stock-out.html">Book Out</a>
+          <a class="tree-button" href="users.html">User Management</a>
+          <a class="tree-button" href="#" onclick="logout(); return false;">Logout</a>
         </nav>
       </aside>
 
@@ -54,6 +56,10 @@
             <label>
               Shelf location
               <input id="item-shelf-location" name="shelfLocation" placeholder="A-01-03" />
+            </label>
+            <label>
+              Bin number
+              <input id="item-bin-number" name="binNumber" placeholder="BIN-12" />
             </label>
             <div class="scanner-controls">
               <button type="button" id="scan-qr-button">Scan QR code</button>
@@ -122,6 +128,7 @@
             quantity: Number(data.get('quantity')) || 0,
             minQuantity: minimumQuantity,
             shelfLocation: data.get('shelfLocation').toString().trim(),
+            binNumber: data.get('binNumber').toString().trim(),
             photo
           };
 
@@ -134,7 +141,9 @@
             quantity: item.quantity,
             itemName: item.name,
             user: 'Current User',
-            note: item.shelfLocation ? `Part created at ${item.shelfLocation}` : 'Part created',
+            note: item.shelfLocation || item.binNumber
+              ? `Part created at ${item.shelfLocation || '—'} / ${item.binNumber || '—'}`
+              : 'Part created',
             timestamp: new Date().toLocaleString('en-GB', { hour12: false })
           });
           localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));

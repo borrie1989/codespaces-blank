@@ -1,9 +1,27 @@
+// Authentication check - redirect to login if not authenticated
+function checkAuth() {
+  const AUTH_KEY = 'inventory-tracker-auth-v1';
+  const auth = localStorage.getItem(AUTH_KEY);
+  if (!auth) {
+    window.location.href = 'login.html';
+  }
+  return auth ? JSON.parse(auth) : null;
+}
+
+// Call auth check on page load
+const currentAuth = checkAuth();
+
 const STORAGE_KEY = 'inventory-tracker-state-v1';
 
 const defaultState = {
   items: [],
   activities: []
 };
+
+function logout() {
+  localStorage.removeItem('inventory-tracker-auth-v1');
+  window.location.href = 'login.html';
+}
 
 function loadState() {
   try {
@@ -15,6 +33,8 @@ function loadState() {
             ...item,
             manufacturer: item.manufacturer || '',
             photo: item.photo || '',
+            shelfLocation: item.shelfLocation || '',
+            binNumber: item.binNumber || '',
             minQuantity: Number(item.minQuantity ?? 5)
           }))
         : [],
@@ -115,7 +135,8 @@ function parseQrPayload(payload) {
       sku: parts[1],
       manufacturer: parts[2] || '',
       quantity: parts[3] || '',
-      shelfLocation: parts[4] || ''
+      shelfLocation: parts[4] || '',
+      binNumber: parts[5] || ''
     };
   }
 
@@ -145,6 +166,9 @@ function applyQrDataToForm(data) {
   }
   if (data.shelfLocation || data.location) {
     setFieldValue('item-shelf-location', data.shelfLocation || data.location, 'shelfLocation');
+  }
+  if (data.binNumber || data.bin) {
+    setFieldValue('item-bin-number', data.binNumber || data.bin, 'binNumber');
   }
 }
 

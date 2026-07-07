@@ -46,7 +46,7 @@
               Note
               <input id="stock-in-note" name="note" placeholder="Supplier delivery" />
             </label>
-            <p id="stock-in-shelf-display" class="muted">Shelf location: —</p>
+            <p id="stock-in-location-display" class="muted">Shelf location: — | Bin: —</p>
             <div class="scanner-controls">
               <button type="button" id="scan-qr-button">Scan QR code</button>
               <button type="button" id="cancel-qr-button" class="secondary-button hidden">Stop camera</button>
@@ -66,13 +66,13 @@
       document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('stock-in-form');
         const select = document.getElementById('stock-in-item');
-        const shelfDisplay = document.getElementById('stock-in-shelf-display');
+        const locationDisplay = document.getElementById('stock-in-location-display');
         const state = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
 
-        function updateShelfLocation() {
+        function updateLocationDisplay() {
           const currentState = JSON.parse(localStorage.getItem('inventory-tracker-state-v1') || '{"items":[],"activities":[]}');
           const selectedItem = (currentState.items || []).find((entry) => entry.id === select.value);
-          shelfDisplay.textContent = `Shelf location: ${selectedItem?.shelfLocation || '—'}`;
+          locationDisplay.textContent = `Shelf location: ${selectedItem?.shelfLocation || '—'} | Bin: ${selectedItem?.binNumber || '—'}`;
         }
 
         select.innerHTML = '';
@@ -90,8 +90,8 @@
           });
         }
 
-        updateShelfLocation();
-        select.addEventListener('change', updateShelfLocation);
+        updateLocationDisplay();
+        select.addEventListener('change', updateLocationDisplay);
 
         form.addEventListener('submit', (event) => {
           event.preventDefault();
@@ -114,7 +114,9 @@
             quantity,
             itemName: item.name,
             user: 'Current User',
-            note: note || (item.shelfLocation ? `Stock added to ${item.shelfLocation}` : 'Stock added'),
+            note: note || (item.shelfLocation || item.binNumber
+              ? `Stock added to ${item.shelfLocation || '—'} / ${item.binNumber || '—'}`
+              : 'Stock added'),
             timestamp: new Date().toLocaleString('en-GB', { hour12: false })
           });
           localStorage.setItem('inventory-tracker-state-v1', JSON.stringify(state));

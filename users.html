@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-layout">
+      <aside class="sidebar">
+        <h3>Navigation</h3>
+        <nav class="tree-nav" aria-label="Inventory pages">
+          <a class="tree-button" href="index.html">Dashboard</a>
+          <a class="tree-button" href="inventory.html">Inventory List</a>
+          <a class="tree-button" href="add-part.html">Add Part</a>
+          <a class="tree-button" href="stock-in.html">Book In</a>
+          <a class="tree-button" href="stock-out.html">Book Out</a>
+          <a class="tree-button active" href="users.html">User Management</a>
+          <a class="tree-button" href="#" id="logout-link">Logout</a>
+        </nav>
+      </aside>
+
+      <div class="app-shell">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Administration</p>
+            <h1>User Management</h1>
+            <p class="muted">Manage user accounts and access permissions.</p>
+          </div>
+        </header>
+
+        <section class="panel wide-panel">
+          <h2>Active Users</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel wide-panel">
+          <h2>Add New User</h2>
+          <form id="add-user-form" class="stack">
+            <label>
+              Email
+              <input
+                id="new-user-email"
+                name="email"
+                type="email"
+                placeholder="user@emrontech.co.za"
+                required
+              />
+            </label>
+            <label>
+              Temporary Password
+              <input
+                id="new-user-password"
+                name="password"
+                type="password"
+                placeholder="Enter password"
+                required
+              />
+            </label>
+            <div style="display: flex; gap: 1rem;">
+              <button type="submit">Add User</button>
+              <button type="button" id="generate-password-btn" class="secondary-button">
+                Generate Password
+              </button>
+            </div>
+            <div id="add-user-status" style="margin-top: 1rem; display: none;"></div>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const AUTH_KEY = 'inventory-tracker-auth-v1';
+      const USERS_KEY = 'inventory-tracker-users-v1';
+
+      function checkAuth() {
+        const auth = localStorage.getItem(AUTH_KEY);
+        if (!auth) {
+          window.location.href = 'login.html';
+          return null;
+        }
+        const authData = JSON.parse(auth);
+        if (!authData.isAdmin) {
+          alert('You do not have permission to access this page.');
+          window.location.href = 'index.html';
+          return null;
+        }
+        return authData;
+      }
+
+      function generatePassword(length = 12) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      }
+
+      function renderUsers() {
+        const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+        const tbody = document.getElementById('users-table-body');
+        tbody.innerHTML = '';
+
+        users.forEach((user) => {
+          const row = document.createElement('tr');
+          const status = user.isAdmin ? '<span style="color: #d32f2f; font-weight: 600;">Admin</span>' : 'User';
+          row.innerHTML = `
+            <td>${user.email}</td>
+            <td>${status}</td>
+            <td>${user.createdAt}</td>
+            <td>
+              ${
+                !user.isAdmin
+                  ? `<button class="secondary-button delete-user-btn" data-id="${user.id}">Delete</button>`
+                  : '<span class="muted">—</span>'
+              }
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Attach delete handlers
+        document.querySelectorAll('.delete-user-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this user?')) {
+              const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+              const filtered = users.filter((u) => u.id !== userId);
+              localStorage.setItem(USERS_KEY, JSON.stringify(filtered));
+              renderUsers();
+            }
+          });
+        });
+      }
+
+      function handleAddUser(event) {
+        event.preventDefault();
+        const email = document.getElementById('new-user-email').value.trim();
+        const password = document.getElementById('new-user-password').value;
+        const statusDiv = document.getElementById('add-user-status');
+
+        if (!email || !password) {
+          statusDiv.textContent = 'Email and password are required.';
+          statusDiv.style.color = '#d32f2f';
+          statusDiv.style.display = 'block';
+          return;
+        }
+
+        const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+        const exists = users.some((u) => u.email === email);
+
+        if (exists) {
+          statusDiv.textContent = 'A user with this email already exists.';
+          statusDiv.style.color = '#d32f2f';
+          statusDiv.style.display = 'block';
+          return;
+        }
+
+        const newUser = {
+          id: crypto.randomUUID(),
+          email,
+          password,
+          isAdmin: false,
+          createdAt: new Date().toLocaleString('en-GB', { hour12: false })
+        };
+
+        users.push(newUser);
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+        statusDiv.textContent = `User ${email} added successfully!`;
+        statusDiv.style.color = '#388e3c';
+        statusDiv.style.display = 'block';
+
+        document.getElementById('add-user-form').reset();
+        renderUsers();
+
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 3000);
+      }
+
+      document.getElementById('add-user-form').addEventListener('submit', handleAddUser);
+
+      document.getElementById('generate-password-btn').addEventListener('click', () => {
+        const pwd = generatePassword();
+        document.getElementById('new-user-password').value = pwd;
+      });
+
+      document.getElementById('logout-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem(AUTH_KEY);
+        window.location.href = 'login.html';
+      });
+
+      checkAuth();
+      renderUsers();
+    </script>
+  </body>
+</html>
